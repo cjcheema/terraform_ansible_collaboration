@@ -1,2 +1,12 @@
+# Sensitive variable definition files
 terraform.tfvars
+
+# Terraform directory
 .terraform/
+
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+
+# Lock file
+.terraform.lock.hcl
