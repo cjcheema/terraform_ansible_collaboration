@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    ansible = {
-      source  = "ansible/ansible"
-      version = "~> 1.3.0"
-    }
   }
 }
 
@@ -17,10 +13,8 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-provider "ansible" {} # Calling Ansible provider after AWS provider
-
 resource "aws_instance" "web_server" {
-  ami           = "ami-02b49a24cfb95941c"  # Replace with your preferred AMI ID
+  ami           = "ami-02b49a24cfb95941c" # Replace with your preferred AMI ID
   instance_type = "t2.micro"
   key_name      = var.key_pair_name
 
@@ -30,11 +24,26 @@ resource "aws_instance" "web_server" {
     Name = "WebServer"
   }
 
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = file(var.private_key_path)
-    host        = self.public_ip
+
+  # Checking if EC2 instance is accessible via ssh post provisioning and before ansible playbook is invoked
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Hello World! I am cj-web01 and I am alive.'"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
+  }
+
+  # Provisioner to run Ansible playbook after the instance is created
+  provisioner "local-exec" {
+    command = <<EOT
+      ansible-playbook -i ${self.public_ip}, --private-key ${var.private_key_path} patch_apache_install.yml
+    EOT
   }
 
 }
@@ -65,11 +74,6 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-resource "ansible_playbook" "run_playbook" { # Using the ansible_playbook resource to run the ansible playbook
-  playbook   = "patch_apache_install.yml"   
-  name = aws_instance.web_server.public_ip
-  replayable = true
-}
 
 variable "aws_region" {
   description = "The AWS region to create resources in."

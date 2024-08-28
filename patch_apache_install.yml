@@ -1,13 +1,17 @@
 - hosts: all
   become: yes
   tasks:
+    - name: Set the Server Hostname
+      hostname:
+        name: cj-web01
+
     - name: Install patches
-      yum:
+      dnf:
         name: "*"
         state: latest
 
     - name: Install Apache
-      yum:
+      dnf:
         name: httpd
         state: present
 
